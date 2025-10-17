@@ -2,7 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require("helmet");
 const rateLimit = require("express-rate-limit")
-const {ethers} = require("ethers")
+const {ethers, NonceManager} = require("ethers")
 const Redis = require("redis")
 const Queue = require("bull");
 require('dotenv').config();
@@ -42,6 +42,10 @@ class RelayerServer{
         });
 
         this.redis.on('error', (err) => console.log('Redis Client Error', err));
+        this.redis.connect();
+
+        // used the ethers nonce manager to craetea anonce to avoid relay attcaks
+        this.nonceManger = new NonceManager(this.redis)
     }
 
 
