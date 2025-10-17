@@ -63,13 +63,21 @@ class RelayerServer{
 
     setupProvider() {
         const networkName = 'localhost';
-        this.networkConfig = NetworkConfig[networkName];
+        this.networkConfig = NetworkConfig[networkName];0
 
         if(!this.networkConfig) {
             throw new Error(`Unsupported network: ${networkName}`);
         }
+        this.provider = new ethers.JsonRpcProvider(this.networkConfig.rpcUrl);
 
+        this.relayerWallet = new ethers.Wallet("privateKey",this.provider)
+
+
+         console.log(` Connected to ${networkName} network`)
+
+         console.log(`Relayer address: ${this.relayerWallet.address}`)
     }
+   
 
 
 }
