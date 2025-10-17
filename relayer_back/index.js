@@ -6,3 +6,14 @@ const {ethers} = require("ethers")
 const Redis = require("redis")
 const Queue = require("bull");
 require('dotenv').config();
+
+class RelayerServer{
+    constructor() {
+        this.app = express();
+        this.setupMiddleware();
+        this.setupDatabase();
+        this.setupQueue();
+        this.setupProvider();
+        this.setupRoutes();
+    }
+}
