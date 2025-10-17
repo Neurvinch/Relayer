@@ -48,5 +48,18 @@ class RelayerServer{
         this.nonceManger = new NonceManager(this.redis)
     }
 
+    setupQueue() {
+        this.txQueue = new Queue('transaction queue','redis://localhost:6379');
+
+        this.txQueue.process('relay', async (job) => await this.processTransaction(job.data));
+
+        this.txQueue.on('completed', (job, result) => console.log(`Transaction completed: ${result.txHash}`))
+
+        this.txQueue.on("failed", (job, err) => {
+            console.log(`Transaction failed: ${err.message}`);
+        });
+
+    }
+
 
 }
