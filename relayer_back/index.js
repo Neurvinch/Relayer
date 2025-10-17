@@ -62,7 +62,13 @@ class RelayerServer{
     }
 
     setupProvider() {
-        
+        const networkName = 'localhost';
+        this.networkConfig = NetworkConfig[networkName];
+
+        if(!this.networkConfig) {
+            throw new Error(`Unsupported network: ${networkName}`);
+        }
+
     }
 
 
