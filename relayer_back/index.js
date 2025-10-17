@@ -16,4 +16,12 @@ class RelayerServer{
         this.setupProvider();
         this.setupRoutes();
     }
+
+    setupMiddleware() {
+        this.app.use(helmet());
+        this.app.use(cors());
+
+    };
+
+    
 }
