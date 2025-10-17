@@ -36,4 +36,13 @@ class RelayerServer{
     };
 
 
+    setupDatabase(){
+        this.redis = Redis.createClient({
+            url: 'redis://localhost:6379'
+        });
+
+        this.redis.on('error', (err) => console.log('Redis Client Error', err));
+    }
+
+
 }
