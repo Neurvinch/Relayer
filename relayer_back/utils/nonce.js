@@ -23,10 +23,24 @@ class NonceManager {
         }
     }
 
-    async validateAndUpdateNonce(address, expextedNonce) {
+    async validateAndUpdateNonce(address, expectedNonce) {
         
         try {
+
+            const key = this.NONCE_PREFIX + address.toLowercase();
+
+            const multi = this.redis.multi();
+           
+            multi.get(key);
+
+            const results = await multi.exec();
+
+            const currentNonce = parseInt(results[0] || '0');
+
             
+            if(expectedNonce !== currentNonce) {
+                console.log(`Nonce mismatch`)
+            }
             
         } catch (error) {
             
