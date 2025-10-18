@@ -38,7 +38,8 @@ class SignatureUtils {
 
             
         } catch (error) {
-            
+             console.error('Signature verification error:', error);
+                return false;
         }
     }
 }
