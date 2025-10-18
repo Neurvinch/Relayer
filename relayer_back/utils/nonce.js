@@ -39,11 +39,19 @@ class NonceManager {
 
             
             if(expectedNonce !== currentNonce) {
-                console.log(`Nonce mismatch`)
+                console.log(`Nonce mismatch for ${address}" expected ${expectedNonce}, got ${currentNonce}`)
+                return false;
             }
+
+            await this.redis.set(key, (currentNonce + 1).toString());
+
+            return true;
             
         } catch (error) {
             
+            console.error('Nonce validation error:', error);
+
+                return false;
         }
 
     }
