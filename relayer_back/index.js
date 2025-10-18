@@ -83,11 +83,20 @@ class RelayerServer{
             try {
 
                 const {request, signature} = req.body
+
+                if(!this.validateRequestFormat(request , signature)) {
+                    return res.status(400).josn({error: 'Invalid e=request format'})
+                };
+
+                
                 
             } catch (error) {
                 
             }
         })
+
+
+
 
          this.app.get('/health', async (req, res) => {
 
