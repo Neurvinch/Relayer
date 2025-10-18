@@ -84,11 +84,20 @@ class RelayerServer{
 
                 const {request, signature} = req.body
 
-                if(!this.validateRequestFormat(request , signature)) {
-                    return res.status(400).josn({error: 'Invalid e=request format'})
-                };
-
+                if(!this.validateRequestFormat(request , signature))
+                     return res.status(400).josn({error: 'Invalid e=request format'})
                 
+
+                // const isValidSignature = await SignatureUtils.verifySignature(
+                //     request,
+                //     signature,
+                //     this.networkConfig.forwarderAddress,
+                //     this.networkConfig.chainId
+
+                // )
+
+
+
                 
             } catch (error) {
                 
