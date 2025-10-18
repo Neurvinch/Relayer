@@ -79,8 +79,19 @@ class RelayerServer{
     }
    
     setupRoutes() {
-        
+        this.app.post('/api/relay', async (require,res) => {
+            try {
+
+                const {request, signature} = req.body
+                
+            } catch (error) {
+                
+            }
+        })
     }
+
+
+    
 
 
 }
