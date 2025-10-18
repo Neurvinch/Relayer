@@ -22,4 +22,15 @@ class NonceManager {
                     return 0;
         }
     }
+
+    async validateAndUpdateNonce(address, expextedNonce) {
+        
+        try {
+            
+            
+        } catch (error) {
+            
+        }
+
+    }
 }
