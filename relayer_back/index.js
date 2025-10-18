@@ -88,10 +88,21 @@ class RelayerServer{
                 
             }
         })
+
+         this.app.get('/health', async (req, res) => {
+
+            res.json({
+                status: 'healthy',
+                network: 'localhost',
+                relayer: this.relayerWallet.address,
+                timestamp: new Date().toISOString()
+            })
+    
+  })
     }
 
-
-    
+ 
+     
 
 
 }
