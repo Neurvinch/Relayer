@@ -67,6 +67,10 @@ class SignatureUtils {
                 ]
         };
 
-        return await 
+        return await  wallet.signTypedData(domain, types, request);
+    
     }
+
 }
+
+module.exports = SignatureUtils;
