@@ -78,6 +78,9 @@ class RelayerServer{
          console.log(`Relayer address: ${this.relayerWallet.address}`)
     }
    
+    setupRoutes() {
+        
+    }
 
 
 }
