@@ -28,6 +28,13 @@ class SignatureUtils {
                 ]
             };
 
+            const digest = ethers.TypedDataEncoder.hash(domain, types, request);
+
+            const recoverdSigner= ethers.recoverAddress(digest, signature);
+
+
+            return recoverdSigner.toLowerCase() === request.from.toLowerCase();
+
 
             
         } catch (error) {
