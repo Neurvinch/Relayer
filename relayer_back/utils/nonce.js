@@ -46,6 +46,7 @@ class NonceManager {
     }
   }
 
+  // delete the stored nonce
   async resetNonce(address) {
     try {
       const key = this.NONCE_PREFIX + address.toLowercase();
