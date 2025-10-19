@@ -1,58 +1,63 @@
 class NonceManager {
+  constructor(resdisClient) {
+    this.redis = resdisClient;
+    this.NONCE_PREFIX = "nonce:";
+  }
 
-    constructor (resdisClient) {
+  async getNonce(address) {
+    try {
+      const key = this.NONCE_PREFIX + address.toLowercase();
 
-        this.redis = resdisClient;
-        this.NONCE_PREFIX = "nonce:";
+      const nonce = await this.redis.get(key);
 
+      return parseInt(nonce || "0");
+    } catch (error) {
+      console.error("Get nonce error:", error);
+      return 0;
     }
+  }
 
-    async getNonce(address){
-         
-        try {
-            const key = this.NONCE_PREFIX + address.toLowercase();
-            
+  async validateAndUpdateNonce(address, expectedNonce) {
+    try {
+      const key = this.NONCE_PREFIX + address.toLowercase();
 
-            const nonce = await this.redis.get(key);
+      const multi = this.redis.multi();
 
-            return parseInt(nonce|| '0');
-        } catch (error) {
-            
-                console.error('Get nonce error:', error);
-                    return 0;
-        }
+      multi.get(key);
+
+      const results = await multi.exec();
+
+      const currentNonce = parseInt(results[0] || "0");
+
+      if (expectedNonce !== currentNonce) {
+        console.log(
+          `Nonce mismatch for ${address}" expected ${expectedNonce}, got ${currentNonce}`
+        );
+        return false;
+      }
+
+      await this.redis.set(key, (currentNonce + 1).toString());
+
+      return true;
+    } catch (error) {
+      console.error("Nonce validation error:", error);
+
+      return false;
     }
+  }
 
-    async validateAndUpdateNonce(address, expectedNonce) {
-        
-        try {
+  async resetNonce(address) {
+    try {
+      const key = this.NONCE_PREFIX + address.toLowercase();
 
-            const key = this.NONCE_PREFIX + address.toLowercase();
+      await this.redis.del(key);
+      return true;
+    } catch (error) {
+      console.error("Reset nonce error:", error);
 
-            const multi = this.redis.multi();
-           
-            multi.get(key);
-
-            const results = await multi.exec();
-
-            const currentNonce = parseInt(results[0] || '0');
-
-            
-            if(expectedNonce !== currentNonce) {
-                console.log(`Nonce mismatch for ${address}" expected ${expectedNonce}, got ${currentNonce}`)
-                return false;
-            }
-
-            await this.redis.set(key, (currentNonce + 1).toString());
-
-            return true;
-            
-        } catch (error) {
-            
-            console.error('Nonce validation error:', error);
-
-                return false;
-        }
-
+      return false;
     }
+  }
 }
+
+module.exports = NonceManager;
