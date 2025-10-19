@@ -1,126 +1,113 @@
-const express = require('express');
-const cors = require('cors');
+import SignatureUtils from "./utils/signature";
+
+const express = require("express");
+const cors = require("cors");
 const helmet = require("helmet");
-const rateLimit = require("express-rate-limit")
-const {ethers, NonceManager} = require("ethers")
-const Redis = require("redis")
+const rateLimit = require("express-rate-limit");
+const { ethers, NonceManager } = require("ethers");
+const Redis = require("redis");
 const Queue = require("bull");
-require('dotenv').config();
+require("dotenv").config();
+const NetworkConfig = require("./config/network");
+const nonceManager = require("./utils/nonce");
+const signatureUtils = require("./utils/signature");
 
-class RelayerServer{
-    constructor() {
-        this.app = express();
-        this.setupMiddleware();
-        this.setupDatabase();
-        this.setupQueue();
-        this.setupProvider();
-        this.setupRoutes();
+class RelayerServer {
+  constructor() {
+    this.app = express();
+    this.setupMiddleware();
+    this.setupDatabase();
+    this.setupQueue();
+    this.setupProvider();
+    this.setupRoutes();
+  }
+
+  setupMiddleware() {
+    this.app.use(helmet());
+    this.app.use(cors());
+
+    const limiter = rateLimit({
+      windowMs: 15 * 60 * 1000,
+      max: 100,
+      message: "Too many requests from this IP, please try again later.",
+      standardHeaders: true,
+      legacyHeaders: false,
+    });
+
+    this.app.use("/api/", limiter);
+    this.app.use(express.json({ limit: "10mb" }));
+  }
+
+  setupDatabase() {
+    this.redis = Redis.createClient({
+      url: "redis://localhost:6379",
+    });
+
+    this.redis.on("error", (err) => console.log("Redis Client Error", err));
+    this.redis.connect();
+
+    // used the ethers nonce manager to craetea anonce to avoid relay attcaks
+    this.nonceManger = nonceManager(this.redis);
+  }
+
+  setupQueue() {
+    this.txQueue = new Queue("transaction queue", "redis://localhost:6379");
+
+    this.txQueue.process(
+      "relay",
+      async (job) => await this.processTransaction(job.data)
+    );
+
+    this.txQueue.on("completed", (job, result) =>
+      console.log(`Transaction completed: ${result.txHash}`)
+    );
+
+    this.txQueue.on("failed", (job, err) => {
+      console.log(`Transaction failed: ${err.message}`);
+    });
+  }
+
+  setupProvider() {
+    const networkName = "localhost";
+    this.networkConfig = NetworkConfig[networkName];
+    0;
+
+    if (!this.networkConfig) {
+      throw new Error(`Unsupported network: ${networkName}`);
     }
+    this.provider = new ethers.JsonRpcProvider(this.networkConfig.rpcUrl);
 
-    setupMiddleware() {
-        this.app.use(helmet());
-        this.app.use(cors());
+    this.relayerWallet = new ethers.Wallet("privateKey", this.provider);
 
+    console.log(` Connected to ${networkName} network`);
 
-        const limiter = rateLimit({
-               windowMs: 15 * 60 * 1000,
-                max: 100,
-                message: 'Too many requests from this IP, please try again later.',
-                standardHeaders: true,
-                legacyHeaders: false,
-        })
+    console.log(`Relayer address: ${this.relayerWallet.address}`);
+  }
 
-        this.app.use('/api/',limiter);
-        this.app.use(express.json({limit : '10mb' }))
+  setupRoutes() {
+    this.app.post("/api/relay", async (require, res) => {
+      try {
+        const { request, signature } = req.body;
 
-    };
+        if (!this.validateRequestFormat(request, signature))
+          return res.status(400).josn({ error: "Invalid e=request format" });
 
+        const isValidSignature = await signatureUtils.verifySignature(
+          request,
+          signature,
+          this.networkConfig.forwarderAddress,
+          this.networkConfig.chainId
+        );
+      } catch (error) {}
+    });
 
-    setupDatabase(){
-        this.redis = Redis.createClient({
-            url: 'redis://localhost:6379'
-        });
-
-        this.redis.on('error', (err) => console.log('Redis Client Error', err));
-        this.redis.connect();
-
-        // used the ethers nonce manager to craetea anonce to avoid relay attcaks
-        this.nonceManger = new NonceManager(this.redis)
-    }
-
-    setupQueue() {
-        this.txQueue = new Queue('transaction queue','redis://localhost:6379');
-
-        this.txQueue.process('relay', async (job) => await this.processTransaction(job.data));
-
-        this.txQueue.on('completed', (job, result) => console.log(`Transaction completed: ${result.txHash}`))
-
-        this.txQueue.on("failed", (job, err) => {
-            console.log(`Transaction failed: ${err.message}`);
-        });
-
-    }
-
-    setupProvider() {
-        const networkName = 'localhost';
-        this.networkConfig = NetworkConfig[networkName];0
-
-        if(!this.networkConfig) {
-            throw new Error(`Unsupported network: ${networkName}`);
-        }
-        this.provider = new ethers.JsonRpcProvider(this.networkConfig.rpcUrl);
-
-        this.relayerWallet = new ethers.Wallet("privateKey",this.provider)
-
-
-         console.log(` Connected to ${networkName} network`)
-
-         console.log(`Relayer address: ${this.relayerWallet.address}`)
-    }
-   
-    setupRoutes() {
-        this.app.post('/api/relay', async (require,res) => {
-            try {
-
-                const {request, signature} = req.body
-
-                if(!this.validateRequestFormat(request , signature))
-                     return res.status(400).josn({error: 'Invalid e=request format'})
-                
-
-                // const isValidSignature = await SignatureUtils.verifySignature(
-                //     request,
-                //     signature,
-                //     this.networkConfig.forwarderAddress,
-                //     this.networkConfig.chainId
-
-                // )
-
-
-
-                
-            } catch (error) {
-                
-            }
-        })
-
-
-
-
-         this.app.get('/health', async (req, res) => {
-
-            res.json({
-                status: 'healthy',
-                network: 'localhost',
-                relayer: this.relayerWallet.address,
-                timestamp: new Date().toISOString()
-            })
-    
-  })
-    }
-
- 
-     
-
-
+    this.app.get("/health", async (req, res) => {
+      res.json({
+        status: "healthy",
+        network: "localhost",
+        relayer: this.relayerWallet.address,
+        timestamp: new Date().toISOString(),
+      });
+    });
+  }
 }
